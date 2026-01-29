@@ -1,0 +1,56 @@
+import requests
+from telegram.ext import Updater, CommandHandler
+
+TOKEN = "7993942640:AAHgJ1a4KLKwc23trpWzTSbjlMryVhADnEA"
+
+def get_ton_price_usd():
+    url = "https://api.coingecko.com/api/v3/simple/price?ids=toncoin&vs_currencies=usd"
+    try:
+        response = requests.get(url, timeout=10)
+        data = response.json()
+        return data["toncoin"]["usd"]
+    except Exception:
+        return None
+
+def get_exchange_rates():
+    asia_rate = 2500    # سعر الدولار مقابل الدينار العراقي (الأسيا)
+    master_rate = 2600  # سعر الدولار مقابل الماستر العراقي
+    usd_rate = 1        # الدولار مقابل الدولار نفسه
+    return asia_rate, master_rate, usd_rate
+
+def prices(update, context):
+    ton_usd = get_ton_price_usd()
+    asia_rate, master_rate, usd_rate = get_exchange_rates()
+
+    if ton_usd is None:
+        update.message.reply_text("عذراً، لم أتمكن من جلب سعر TON الآن. حاول لاحقًا.")
+        return
+
+    usd_in_asia = 1 * asia_rate
+    usd_in_master = 1 * master_rate
+
+    ton_in_usd = ton_usd * usd_rate
+    ton_in_asia = ton_usd * asia_rate
+    ton_in_master = ton_usd * master_rate
+
+    message = (
+        f"💵 سعر الدولار الأمريكي (USD):\n"
+        f" - بالأسيا العراقي: {usd_in_asia:,.0f} IQD\n"
+        f" - بالماستر العراقي: {usd_in_master:,.0f} IQD\n\n"
+        f"🔷 سعر عملة TON:\n"
+        f" - بالدولار الأمريكي: {ton_in_usd:.2f} USD\n"
+        f" - بالأسيا العراقي: {ton_in_asia:,.0f} IQD\n"
+        f" - بالماستر العراقي: {ton_in_master:,.0f} IQD\n"
+    )
+    update.message.reply_text(message)
+
+def main():
+    updater = Updater(TOKEN)
+    dp = updater.dispatcher
+    dp.add_handler(CommandHandler("prices", prices))
+
+    updater.start_polling()
+    updater.idle()
+
+if __name__ == "__main__":
+    main()
